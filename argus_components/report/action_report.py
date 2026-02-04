@@ -172,6 +172,7 @@ class ActionReport(Report):
         if output_file == None:
             print(to_json(sarif_report))
         else:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
             with open(output_file, "w") as f:
                 f.write(to_json(sarif_report))
 
@@ -252,6 +253,7 @@ class ActionReport(Report):
         if output_file == None:
             print(to_json(sarif_report))
         else:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
             with open(output_file, "w") as f:
                 f.write(to_json(sarif_report))
     
