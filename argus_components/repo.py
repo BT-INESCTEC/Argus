@@ -52,21 +52,6 @@ class Repo:
         self.workflows = Workflow.initialize_workflows(self.folder)    
         self.workflow_reports = []
 
-
-class LocalFileRepo(Repo):
-    """Minimal Repo subclass for analyzing single workflow files without cloning."""
-    
-    def __init__(self, file_path):
-        self.repo_url = "local-file"
-        self.option_dict = {}
-        self.repo_name = "local-file"
-        self.owner_name = "local"
-        self.actions = []
-        self.sub_repos = []
-        self.workflows = []
-        self.workflow_reports = []
-        self.folder = os.path.dirname(os.path.abspath(file_path))
-
     def run(self, workflow_path : str = None):
         # Find the workflows in the repository
         flag = False
@@ -141,3 +126,19 @@ class LocalFileRepo(Repo):
     def print_report(self):
         for workflow_report in self.workflow_reports:
             workflow_report.get_report(None)
+
+
+class LocalFileRepo(Repo):
+    """Minimal Repo subclass for analyzing single workflow files without cloning."""
+    
+    def __init__(self, file_path):
+        # Skip parent __init__ to avoid git cloning
+        self.repo_url = "local-file"
+        self.option_dict = {}
+        self.repo_name = "local-file"
+        self.owner_name = "local"
+        self.actions = []
+        self.sub_repos = []
+        self.workflows = []
+        self.workflow_reports = []
+        self.folder = os.path.dirname(os.path.abspath(file_path))

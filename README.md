@@ -20,7 +20,7 @@ python argus.py --mode [mode] --url [url] [--output-folder path_to_output] [--co
 
 ### Parameters:
 
-- `--mode`: The mode of operation. Choose either 'repo' or 'action'. This parameter is required.
+- `--mode`: The mode of operation. Choose either 'repo', 'action' or 'file'. This parameter is required.
 - `--url`: The GitHub URL. Use `USERNAME:TOKEN@URL` for private repos. This parameter is required.
 - `--output-folder`: The output folder. The default value is '/tmp'. This parameter is optional.
 - `--config`: The config file. This parameter is optional.
@@ -28,8 +28,9 @@ python argus.py --mode [mode] --url [url] [--output-folder path_to_output] [--co
 - `--branch`: The branch name. You must provide exactly one of: `--branch`, `--commit`, `--tag`. This parameter is optional.
 - `--commit`: The commit hash. You must provide exactly one of: `--branch`, `--commit`, `--tag`. This parameter is optional.
 - `--tag`: The tag. You must provide exactly one of: `--branch`, `--commit`, `--tag`. This parameter is optional.
-- `--action-path`: The (relative) path to the action. You cannot provide `--action-path` in repo mode. This parameter is optional.
-- `--workflow-path`: The (relative) path to the workflow. You cannot provide `--workflow-path` in action mode. This parameter is optional.
+- `--action-path`: The (relative) path to the action. You cannot provide `--action-path` in repo or file mode. This parameter is optional.
+- `--workflow-path`: The (relative) path to the workflow. You cannot provide `--workflow-path` in action or file mode. This parameter is optional.
+- `--file`: The path to a local file. This parameter is required in file mode.
 
 ### Example:
 
