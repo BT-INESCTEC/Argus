@@ -96,30 +96,14 @@ def main(mode, url, file_path, branch, commit, tag, output_folder, config, verbo
         from argus_components.ir import WorkflowIR
         import argus_components.taintengine as TaintEngine
         import argus_components.report as Report
-        from argus_components.repo import Repo
-        from argus_components.ci import GithubCI
+        from argus_components.repo import LocalFileRepo
         
         abs_file_path = os.path.abspath(file_path)
         if not abs_file_path.endswith(('.yml', '.yaml')):
             raise click.BadParameter("File must be a .yml or .yaml file")
         
-        repo_path = os.path.dirname(abs_file_path)
-        
-        workflow = GHWorkflow(abs_file_path, repo_path)
-        
-        class LocalFileRepo(Repo):
-            def __init__(self):
-                self.repo_url = "local-file"
-                self.option_dict = {}
-                self.repo_name = "local-file"
-                self.owner_name = "local"
-                self.actions = []
-                self.sub_repos = []
-                self.workflows = []
-                self.workflow_reports = []
-                self.folder = repo_path
-        
-        context = LocalFileRepo()
+        workflow = GHWorkflow(abs_file_path, os.path.dirname(abs_file_path))
+        context = LocalFileRepo(abs_file_path)
         
         ir_obj = WorkflowIR.get_IR(workflow)
         workflow_report = Report.WorkflowReport(
