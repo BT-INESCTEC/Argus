@@ -33,6 +33,7 @@ from argus_components.common.pylogger import set_global_log_level
 @click.option("--url", required=False, type=str, help="The GitHub URL. use USERNAME:TOKEN@URL for private repos.")
 @click.option("--file", "file_path", required=False, type=click.Path(exists=True), help="Path to local workflow file (for file mode).")
 @click.option("--output-folder", required=False, default="/tmp", help="The output folder.", type=click.Path(exists=True))
+@click.option("--output", required=False, default=None, help="Custom output file path (only for file mode).", type=click.Path())
 @click.option("--config", required=False, default=None, help="The config file.", type=click.Path(exists=True))
 @click.option("--verbose", is_flag=True, default=False, help="Verbose mode.")
 @click.option("--branch", default=None, type=str, help="The branch name.")
@@ -40,7 +41,7 @@ from argus_components.common.pylogger import set_global_log_level
 @click.option("--tag", default=None, type=str, help="The tag.")
 @click.option("--action-path", default=None, type=str, help="The (relative) path to the action.")
 @click.option("--workflow-path", default=None, type=str, help="The (relative) path to the workflow.")
-def main(mode, url, file_path, branch, commit, tag, output_folder, config, verbose, action_path, workflow_path):
+def main(mode, url, file_path, branch, commit, tag, output_folder, output, config, verbose, action_path, workflow_path):
 
     if verbose:
         set_global_log_level(logging.DEBUG)
@@ -57,6 +58,8 @@ def main(mode, url, file_path, branch, commit, tag, output_folder, config, verbo
             raise click.BadParameter("--url is required for repo and action modes")
         if file_path:
             raise click.BadParameter("--file can only be used with --mode file")
+        if output:
+            raise click.BadParameter("--output can only be used with --mode file")
 
     options = [branch, commit, tag]
     options_names = ['branch', 'commit', 'tag']
@@ -97,6 +100,7 @@ def main(mode, url, file_path, branch, commit, tag, output_folder, config, verbo
         import argus_components.taintengine as TaintEngine
         import argus_components.report as Report
         from argus_components.repo import LocalFileRepo
+        from pathlib import Path
         
         abs_file_path = os.path.abspath(file_path)
         if not abs_file_path.endswith(('.yml', '.yaml')):
@@ -111,8 +115,13 @@ def main(mode, url, file_path, branch, commit, tag, output_folder, config, verbo
             ir_obj
         )
         
-        base_filename = os.path.splitext(os.path.basename(file_path))[0]
-        output_file = RESULTS_FOLDER / f"{base_filename}.sarif"
+        if output:
+            output_file = Path(output).resolve()
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            base_filename = os.path.splitext(os.path.basename(file_path))[0]
+            output_file = RESULTS_FOLDER / f"{base_filename}.sarif"
+        
         workflow_report.get_report(output_file)
 
 
