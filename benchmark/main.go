@@ -14,7 +14,7 @@ import (
 
 const (
 	RUNS_PER_WORKFLOW = 3
-	ENABLE_DSTAT      = false
+	ENABLE_DSTAT      = true
 	DSTAT_PRE_DELAY   = 10 * time.Second
 	DSTAT_POST_DELAY  = 10 * time.Second
 )
@@ -39,29 +39,29 @@ type BenchmarkResult struct {
 
 var workflowFiles = []WorkflowFile{
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/1.yml", Name: "vwbench_workflow1"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/2.yml", Name: "vwbench_workflow2"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/3.yml", Name: "vwbench_workflow3"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/4.yml", Name: "vwbench_workflow4"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/5.yml", Name: "vwbench_workflow5"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/6.yml", Name: "vwbench_workflow6"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/7.yml", Name: "vwbench_workflow7"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/8.yml", Name: "vwbench_workflow8"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/9.yml", Name: "vwbench_workflow9"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/10.yml", Name: "vwbench_workflow10"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/11.yml", Name: "vwbench_workflow11"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/12.yml", Name: "vwbench_workflow12"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/13.yml", Name: "vwbench_workflow13"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/14.yml", Name: "vwbench_workflow14"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/15.yml", Name: "vwbench_workflow15"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/16.yml", Name: "vwbench_workflow16"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/17.yml", Name: "vwbench_workflow17"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/18.yml", Name: "vwbench_workflow18"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/19.yml", Name: "vwbench_workflow19"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/20.yml", Name: "vwbench_workflow20"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/21.yml", Name: "vwbench_workflow21"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/22.yml", Name: "vwbench_workflow22"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/23.yml", Name: "vwbench_workflow23"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/24.yml", Name: "vwbench_workflow24"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/2.yml", Name: "vwbench_workflow2"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/3.yml", Name: "vwbench_workflow3"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/4.yml", Name: "vwbench_workflow4"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/5.yml", Name: "vwbench_workflow5"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/6.yml", Name: "vwbench_workflow6"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/7.yml", Name: "vwbench_workflow7"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/8.yml", Name: "vwbench_workflow8"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/9.yml", Name: "vwbench_workflow9"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/10.yml", Name: "vwbench_workflow10"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/11.yml", Name: "vwbench_workflow11"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/12.yml", Name: "vwbench_workflow12"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/13.yml", Name: "vwbench_workflow13"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/14.yml", Name: "vwbench_workflow14"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/15.yml", Name: "vwbench_workflow15"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/16.yml", Name: "vwbench_workflow16"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/17.yml", Name: "vwbench_workflow17"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/18.yml", Name: "vwbench_workflow18"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/19.yml", Name: "vwbench_workflow19"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/20.yml", Name: "vwbench_workflow20"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/21.yml", Name: "vwbench_workflow21"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/22.yml", Name: "vwbench_workflow22"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/23.yml", Name: "vwbench_workflow23"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/24.yml", Name: "vwbench_workflow24"},
 }
 
 func main() {
@@ -240,6 +240,7 @@ func parseDstatOutput(filePath string) (map[string]float64, error) {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
+	reader.FieldsPerRecord = -1
 	records, err := reader.ReadAll()
 	if err != nil {
 		return nil, err
