@@ -245,15 +245,8 @@ func parseDstatOutput(filePath string) (map[string]float64, error) {
 		return nil, err
 	}
 
-	dataStart := 0
-	for i, record := range records {
-		if len(record) > 0 && strings.Contains(record[0], "-") {
-			dataStart = i
-			break
-		}
-	}
-
-	if dataStart >= len(records) {
+	dataStart := 6
+	if len(records) <= dataStart {
 		return nil, fmt.Errorf("no data found in dstat output")
 	}
 
@@ -261,7 +254,7 @@ func parseDstatOutput(filePath string) (map[string]float64, error) {
 
 	for i := dataStart; i < len(records); i++ {
 		record := records[i]
-		if len(record) < 15 {
+		if len(record) < 14 {
 			continue
 		}
 
@@ -271,14 +264,14 @@ func parseDstatOutput(filePath string) (map[string]float64, error) {
 			}
 		}
 
-		if mem, err := parseFloat(record[4]); err == nil {
+		if mem, err := parseFloat(record[6]); err == nil {
 			memValues = append(memValues, mem/1024/1024)
 		}
 
-		if diskRead, err := parseFloat(record[8]); err == nil {
+		if diskRead, err := parseFloat(record[12]); err == nil {
 			diskReadValues = append(diskReadValues, diskRead/1024)
 		}
-		if diskWrite, err := parseFloat(record[9]); err == nil {
+		if diskWrite, err := parseFloat(record[13]); err == nil {
 			diskWriteValues = append(diskWriteValues, diskWrite/1024)
 		}
 
