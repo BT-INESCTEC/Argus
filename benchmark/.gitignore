@@ -1,0 +1,22 @@
+# Ignore results and outputs
+results/
+*.sarif
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+argus-benchmark
+
+# Test binary
+*.test
+
+# Output coverage
+*.out
+
+# Python (for analysis notebook)
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
