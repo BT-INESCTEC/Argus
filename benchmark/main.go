@@ -15,8 +15,8 @@ import (
 const (
 	RUNS_PER_WORKFLOW = 3
 	ENABLE_DSTAT      = true
-	DSTAT_PRE_DELAY   = 10 * time.Second
-	DSTAT_POST_DELAY  = 10 * time.Second
+	DSTAT_PRE_DELAY   = 1 * time.Second
+	DSTAT_POST_DELAY  = 1 * time.Second
 )
 
 type WorkflowFile struct {
@@ -192,8 +192,6 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string) (*Be
 	argusCmd.Dir = ".."
 	argusCmd.Stdout = nil
 	argusCmd.Stderr = nil
-
-	println(argusCmd.Dir)
 
 	if err := argusCmd.Run(); err != nil {
 		return nil, fmt.Errorf("argus failed: %w", err)
