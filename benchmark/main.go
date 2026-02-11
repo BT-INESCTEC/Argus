@@ -212,6 +212,8 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string) (*Be
 			p.Kill()
 		}
 		dstatCmd.Wait()
+		
+		time.Sleep(500 * time.Millisecond)
 
 		dstatFile := filepath.Join(rawDstatDir, fmt.Sprintf("%s_run%d_%s.csv", workflow.Name, runNumber, timestamp))
 		metrics, err := parseDstatOutput(dstatFile)
