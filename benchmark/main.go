@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	RUNS_PER_WORKFLOW = 5
+	RUNS_PER_WORKFLOW = 3
 	ENABLE_DSTAT      = true
 	DSTAT_PRE_DELAY   = 1 * time.Second
 	DSTAT_POST_DELAY  = 1 * time.Second
+	BASELINE_DURATION = 10 * time.Second
 )
 
 type WorkflowFile struct {
@@ -35,6 +36,16 @@ type BenchmarkResult struct {
 	AvgNetRecv    float64
 	AvgNetSend    float64
 	Timestamp     string
+}
+
+type BaselineResult struct {
+	AvgCPU       float64
+	PeakMemory   float64
+	AvgDiskRead  float64
+	AvgDiskWrite float64
+	AvgNetRecv   float64
+	AvgNetSend   float64
+	Timestamp    string
 }
 
 var workflowFiles = []WorkflowFile{
@@ -76,6 +87,21 @@ func main() {
 	resultsDir := "results"
 	rawDstatDir := filepath.Join(resultsDir, "raw_dstat")
 	os.MkdirAll(rawDstatDir, 0755)
+
+	if ENABLE_DSTAT {
+		log.Printf("\n📊 Collecting baseline statistics (%v idle)...", BASELINE_DURATION)
+		baseline, err := collectBaseline(rawDstatDir)
+		if err != nil {
+			log.Printf("  ⚠️  Failed to collect baseline: %v", err)
+		} else {
+			baselineFile := filepath.Join(resultsDir, "baseline_results.csv")
+			if err := writeBaselineCSV(baselineFile, baseline); err != nil {
+				log.Printf("  ⚠️  Failed to write baseline CSV: %v", err)
+			} else {
+				log.Printf("  ✅ Baseline collected. Results saved to: %s", baselineFile)
+			}
+		}
+	}
 
 	resultsFile := filepath.Join(resultsDir, "benchmark_results.csv")
 	csvFile, err := os.Create(resultsFile)
@@ -212,7 +238,7 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string) (*Be
 			p.Kill()
 		}
 		dstatCmd.Wait()
-		
+
 		time.Sleep(500 * time.Millisecond)
 
 		dstatFile := filepath.Join(rawDstatDir, fmt.Sprintf("%s_run%d_%s.csv", workflow.Name, runNumber, timestamp))
@@ -294,6 +320,78 @@ func parseDstatOutput(filePath string) (map[string]float64, error) {
 	}
 
 	return metrics, nil
+}
+
+func collectBaseline(rawDstatDir string) (*BaselineResult, error) {
+	timestamp := time.Now().Format("2006-01-02_15-04-05")
+	dstatFile := filepath.Join(rawDstatDir, fmt.Sprintf("baseline_%s.csv", timestamp))
+
+	dstatCmd := exec.Command("dstat",
+		"--time", "--cpu", "--mem", "--net", "--disk", "--swap",
+		"--output", dstatFile)
+	dstatCmd.Stdout = nil
+	dstatCmd.Stderr = nil
+
+	if err := dstatCmd.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start dstat for baseline: %w", err)
+	}
+	dstatPID := dstatCmd.Process.Pid
+
+	time.Sleep(BASELINE_DURATION)
+
+	if p, err := os.FindProcess(dstatPID); err == nil {
+		p.Kill()
+	}
+	dstatCmd.Wait()
+
+	time.Sleep(500 * time.Millisecond)
+
+	metrics, err := parseDstatOutput(dstatFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse baseline dstat: %w", err)
+	}
+
+	return &BaselineResult{
+		AvgCPU:       metrics["avg_cpu"],
+		PeakMemory:   metrics["peak_memory"],
+		AvgDiskRead:  metrics["avg_disk_read"],
+		AvgDiskWrite: metrics["avg_disk_write"],
+		AvgNetRecv:   metrics["avg_net_recv"],
+		AvgNetSend:   metrics["avg_net_send"],
+		Timestamp:    timestamp,
+	}, nil
+}
+
+func writeBaselineCSV(filePath string, baseline *BaselineResult) error {
+	f, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := csv.NewWriter(f)
+	defer w.Flush()
+
+	header := []string{
+		"avg_cpu_percent", "peak_memory_mb",
+		"avg_disk_read_kb", "avg_disk_write_kb",
+		"avg_net_recv_kb", "avg_net_send_kb",
+		"timestamp",
+	}
+	if err := w.Write(header); err != nil {
+		return err
+	}
+
+	record := []string{
+		fmt.Sprintf("%.2f", baseline.AvgCPU),
+		fmt.Sprintf("%.2f", baseline.PeakMemory),
+		fmt.Sprintf("%.2f", baseline.AvgDiskRead),
+		fmt.Sprintf("%.2f", baseline.AvgDiskWrite),
+		fmt.Sprintf("%.2f", baseline.AvgNetRecv),
+		fmt.Sprintf("%.2f", baseline.AvgNetSend),
+		baseline.Timestamp,
+	}
+	return w.Write(record)
 }
 
 func parseFloat(s string) (float64, error) {
