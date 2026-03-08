@@ -14,9 +14,10 @@ import (
 
 const (
 	RUNS_PER_WORKFLOW = 3
-	ENABLE_DSTAT      = false
-	DSTAT_PRE_DELAY   = 10 * time.Second
-	DSTAT_POST_DELAY  = 10 * time.Second
+	ENABLE_DSTAT      = true
+	DSTAT_PRE_DELAY   = 1 * time.Second
+	DSTAT_POST_DELAY  = 1 * time.Second
+	BASELINE_DURATION = 10 * time.Second
 )
 
 type WorkflowFile struct {
@@ -37,31 +38,41 @@ type BenchmarkResult struct {
 	Timestamp     string
 }
 
+type BaselineResult struct {
+	AvgCPU       float64
+	PeakMemory   float64
+	AvgDiskRead  float64
+	AvgDiskWrite float64
+	AvgNetRecv   float64
+	AvgNetSend   float64
+	Timestamp    string
+}
+
 var workflowFiles = []WorkflowFile{
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/1.yml", Name: "vwbench_workflow1"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/2.yml", Name: "vwbench_workflow2"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/2.yml", Name: "vwbench_workflow2"},
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/3.yml", Name: "vwbench_workflow3"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/4.yml", Name: "vwbench_workflow4"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/5.yml", Name: "vwbench_workflow5"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/6.yml", Name: "vwbench_workflow6"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/7.yml", Name: "vwbench_workflow7"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/8.yml", Name: "vwbench_workflow8"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/9.yml", Name: "vwbench_workflow9"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/10.yml", Name: "vwbench_workflow10"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/11.yml", Name: "vwbench_workflow11"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/4.yml", Name: "vwbench_workflow4"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/5.yml", Name: "vwbench_workflow5"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/6.yml", Name: "vwbench_workflow6"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/7.yml", Name: "vwbench_workflow7"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/8.yml", Name: "vwbench_workflow8"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/9.yml", Name: "vwbench_workflow9"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/10.yml", Name: "vwbench_workflow10"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/11.yml", Name: "vwbench_workflow11"},
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/12.yml", Name: "vwbench_workflow12"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/13.yml", Name: "vwbench_workflow13"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/14.yml", Name: "vwbench_workflow14"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/15.yml", Name: "vwbench_workflow15"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/16.yml", Name: "vwbench_workflow16"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/17.yml", Name: "vwbench_workflow17"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/13.yml", Name: "vwbench_workflow13"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/14.yml", Name: "vwbench_workflow14"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/15.yml", Name: "vwbench_workflow15"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/16.yml", Name: "vwbench_workflow16"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/17.yml", Name: "vwbench_workflow17"},
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/18.yml", Name: "vwbench_workflow18"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/19.yml", Name: "vwbench_workflow19"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/19.yml", Name: "vwbench_workflow19"},
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/20.yml", Name: "vwbench_workflow20"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/21.yml", Name: "vwbench_workflow21"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/22.yml", Name: "vwbench_workflow22"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/23.yml", Name: "vwbench_workflow23"},
-	{Path: "../Argus_artifacts/VWBench/.github/workflows/24.yml", Name: "vwbench_workflow24"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/21.yml", Name: "vwbench_workflow21"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/22.yml", Name: "vwbench_workflow22"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/23.yml", Name: "vwbench_workflow23"},
+	// {Path: "../Argus_artifacts/VWBench/.github/workflows/24.yml", Name: "vwbench_workflow24"},
 }
 
 func main() {
@@ -76,6 +87,21 @@ func main() {
 	resultsDir := "results"
 	rawDstatDir := filepath.Join(resultsDir, "raw_dstat")
 	os.MkdirAll(rawDstatDir, 0755)
+
+	if ENABLE_DSTAT {
+		log.Printf("\n📊 Collecting baseline statistics (%v idle)...", BASELINE_DURATION)
+		baseline, err := collectBaseline(rawDstatDir)
+		if err != nil {
+			log.Printf("  ⚠️  Failed to collect baseline: %v", err)
+		} else {
+			baselineFile := filepath.Join(resultsDir, "baseline_results.csv")
+			if err := writeBaselineCSV(baselineFile, baseline); err != nil {
+				log.Printf("  ⚠️  Failed to write baseline CSV: %v", err)
+			} else {
+				log.Printf("  ✅ Baseline collected. Results saved to: %s", baselineFile)
+			}
+		}
+	}
 
 	resultsFile := filepath.Join(resultsDir, "benchmark_results.csv")
 	csvFile, err := os.Create(resultsFile)
@@ -193,8 +219,6 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string) (*Be
 	argusCmd.Stdout = nil
 	argusCmd.Stderr = nil
 
-	println(argusCmd.Dir)
-
 	if err := argusCmd.Run(); err != nil {
 		return nil, fmt.Errorf("argus failed: %w", err)
 	}
@@ -214,6 +238,8 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string) (*Be
 			p.Kill()
 		}
 		dstatCmd.Wait()
+
+		time.Sleep(500 * time.Millisecond)
 
 		dstatFile := filepath.Join(rawDstatDir, fmt.Sprintf("%s_run%d_%s.csv", workflow.Name, runNumber, timestamp))
 		metrics, err := parseDstatOutput(dstatFile)
@@ -240,20 +266,14 @@ func parseDstatOutput(filePath string) (map[string]float64, error) {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
+	reader.FieldsPerRecord = -1
 	records, err := reader.ReadAll()
 	if err != nil {
 		return nil, err
 	}
 
-	dataStart := 0
-	for i, record := range records {
-		if len(record) > 0 && strings.Contains(record[0], "-") {
-			dataStart = i
-			break
-		}
-	}
-
-	if dataStart >= len(records) {
+	dataStart := 6
+	if len(records) <= dataStart {
 		return nil, fmt.Errorf("no data found in dstat output")
 	}
 
@@ -261,7 +281,7 @@ func parseDstatOutput(filePath string) (map[string]float64, error) {
 
 	for i := dataStart; i < len(records); i++ {
 		record := records[i]
-		if len(record) < 15 {
+		if len(record) < 14 {
 			continue
 		}
 
@@ -271,14 +291,14 @@ func parseDstatOutput(filePath string) (map[string]float64, error) {
 			}
 		}
 
-		if mem, err := parseFloat(record[4]); err == nil {
+		if mem, err := parseFloat(record[6]); err == nil {
 			memValues = append(memValues, mem/1024/1024)
 		}
 
-		if diskRead, err := parseFloat(record[8]); err == nil {
+		if diskRead, err := parseFloat(record[12]); err == nil {
 			diskReadValues = append(diskReadValues, diskRead/1024)
 		}
-		if diskWrite, err := parseFloat(record[9]); err == nil {
+		if diskWrite, err := parseFloat(record[13]); err == nil {
 			diskWriteValues = append(diskWriteValues, diskWrite/1024)
 		}
 
@@ -300,6 +320,78 @@ func parseDstatOutput(filePath string) (map[string]float64, error) {
 	}
 
 	return metrics, nil
+}
+
+func collectBaseline(rawDstatDir string) (*BaselineResult, error) {
+	timestamp := time.Now().Format("2006-01-02_15-04-05")
+	dstatFile := filepath.Join(rawDstatDir, fmt.Sprintf("baseline_%s.csv", timestamp))
+
+	dstatCmd := exec.Command("dstat",
+		"--time", "--cpu", "--mem", "--net", "--disk", "--swap",
+		"--output", dstatFile)
+	dstatCmd.Stdout = nil
+	dstatCmd.Stderr = nil
+
+	if err := dstatCmd.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start dstat for baseline: %w", err)
+	}
+	dstatPID := dstatCmd.Process.Pid
+
+	time.Sleep(BASELINE_DURATION)
+
+	if p, err := os.FindProcess(dstatPID); err == nil {
+		p.Kill()
+	}
+	dstatCmd.Wait()
+
+	time.Sleep(500 * time.Millisecond)
+
+	metrics, err := parseDstatOutput(dstatFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse baseline dstat: %w", err)
+	}
+
+	return &BaselineResult{
+		AvgCPU:       metrics["avg_cpu"],
+		PeakMemory:   metrics["peak_memory"],
+		AvgDiskRead:  metrics["avg_disk_read"],
+		AvgDiskWrite: metrics["avg_disk_write"],
+		AvgNetRecv:   metrics["avg_net_recv"],
+		AvgNetSend:   metrics["avg_net_send"],
+		Timestamp:    timestamp,
+	}, nil
+}
+
+func writeBaselineCSV(filePath string, baseline *BaselineResult) error {
+	f, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := csv.NewWriter(f)
+	defer w.Flush()
+
+	header := []string{
+		"avg_cpu_percent", "peak_memory_mb",
+		"avg_disk_read_kb", "avg_disk_write_kb",
+		"avg_net_recv_kb", "avg_net_send_kb",
+		"timestamp",
+	}
+	if err := w.Write(header); err != nil {
+		return err
+	}
+
+	record := []string{
+		fmt.Sprintf("%.2f", baseline.AvgCPU),
+		fmt.Sprintf("%.2f", baseline.PeakMemory),
+		fmt.Sprintf("%.2f", baseline.AvgDiskRead),
+		fmt.Sprintf("%.2f", baseline.AvgDiskWrite),
+		fmt.Sprintf("%.2f", baseline.AvgNetRecv),
+		fmt.Sprintf("%.2f", baseline.AvgNetSend),
+		baseline.Timestamp,
+	}
+	return w.Write(record)
 }
 
 func parseFloat(s string) (float64, error) {
