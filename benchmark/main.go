@@ -282,7 +282,10 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string, tool
 
 	var cmd *exec.Cmd
 	if tool == "argus" {
-		outputFile := filepath.Join(outputDir, "argus.sarif")
+		outputFile, err := filepath.Abs(filepath.Join(outputDir, "argus.sarif"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get absolute path for output file: %w", err)
+		}
 		cmd = exec.Command("poetry", "run", "python3", "argus.py",
 			"--mode", "file",
 			"--file", workflow.Path,
