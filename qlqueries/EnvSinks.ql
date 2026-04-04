@@ -1,14 +1,12 @@
 /**
  * @name DangerousSinks
  * @description Finding sinks
- * @kind path-problem
  * @tags security
  * @id javascipt/dangerous
  * @precision medium
  */
 
 import javascript
-import DataFlow::PathGraph
 
 DataFlow::Node mainDangerCalls() {
     result = DataFlow::globalVarRef("eval").getACall().getArgument(0) or

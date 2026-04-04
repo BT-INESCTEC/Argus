@@ -36,6 +36,7 @@ type BenchmarkResult struct {
 	AvgNetRecv    float64
 	AvgNetSend    float64
 	Timestamp     string
+	Tool          string
 }
 
 type BaselineResult struct {
@@ -50,27 +51,27 @@ type BaselineResult struct {
 
 var workflowFiles = []WorkflowFile{
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/1.yml", Name: "vwbench_workflow1"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/2.yml", Name: "vwbench_workflow2"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/2.yml", Name: "vwbench_workflow2"},
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/3.yml", Name: "vwbench_workflow3"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/4.yml", Name: "vwbench_workflow4"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/5.yml", Name: "vwbench_workflow5"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/4.yml", Name: "vwbench_workflow4"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/5.yml", Name: "vwbench_workflow5"},
 	// {Path: "../Argus_artifacts/VWBench/.github/workflows/6.yml", Name: "vwbench_workflow6"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/7.yml", Name: "vwbench_workflow7"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/8.yml", Name: "vwbench_workflow8"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/9.yml", Name: "vwbench_workflow9"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/10.yml", Name: "vwbench_workflow10"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/11.yml", Name: "vwbench_workflow11"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/7.yml", Name: "vwbench_workflow7"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/8.yml", Name: "vwbench_workflow8"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/9.yml", Name: "vwbench_workflow9"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/10.yml", Name: "vwbench_workflow10"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/11.yml", Name: "vwbench_workflow11"},
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/12.yml", Name: "vwbench_workflow12"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/13.yml", Name: "vwbench_workflow13"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/14.yml", Name: "vwbench_workflow14"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/15.yml", Name: "vwbench_workflow15"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/16.yml", Name: "vwbench_workflow16"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/17.yml", Name: "vwbench_workflow17"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/13.yml", Name: "vwbench_workflow13"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/14.yml", Name: "vwbench_workflow14"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/15.yml", Name: "vwbench_workflow15"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/16.yml", Name: "vwbench_workflow16"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/17.yml", Name: "vwbench_workflow17"},
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/18.yml", Name: "vwbench_workflow18"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/19.yml", Name: "vwbench_workflow19"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/19.yml", Name: "vwbench_workflow19"},
 	{Path: "../Argus_artifacts/VWBench/.github/workflows/20.yml", Name: "vwbench_workflow20"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/21.yml", Name: "vwbench_workflow21"},
-	// {Path: "../Argus_artifacts/VWBench/.github/workflows/22.yml", Name: "vwbench_workflow22"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/21.yml", Name: "vwbench_workflow21"},
+	{Path: "../Argus_artifacts/VWBench/.github/workflows/22.yml", Name: "vwbench_workflow22"},
 	// {Path: "../Argus_artifacts/VWBench/.github/workflows/23.yml", Name: "vwbench_workflow23"},
 	// {Path: "../Argus_artifacts/VWBench/.github/workflows/24.yml", Name: "vwbench_workflow24"},
 }
@@ -103,15 +104,23 @@ func main() {
 		}
 	}
 
-	resultsFile := filepath.Join(resultsDir, "benchmark_results.csv")
-	csvFile, err := os.Create(resultsFile)
+	resultsFileArgus := filepath.Join(resultsDir, "benchmark_results_argus.csv")
+	csvFileArgus, err := os.Create(resultsFileArgus)
 	if err != nil {
-		log.Fatalf("Failed to create results file: %v", err)
+		log.Fatalf("Failed to create Argus results file: %v", err)
 	}
-	defer csvFile.Close()
+	defer csvFileArgus.Close()
+	writerArgus := csv.NewWriter(csvFileArgus)
+	defer writerArgus.Flush()
 
-	writer := csv.NewWriter(csvFile)
-	defer writer.Flush()
+	resultsFileZizmor := filepath.Join(resultsDir, "benchmark_results_zizmor.csv")
+	csvFileZizmor, err := os.Create(resultsFileZizmor)
+	if err != nil {
+		log.Fatalf("Failed to create zizmor results file: %v", err)
+	}
+	defer csvFileZizmor.Close()
+	writerZizmor := csv.NewWriter(csvFileZizmor)
+	defer writerZizmor.Flush()
 
 	var header []string
 	if ENABLE_DSTAT {
@@ -125,8 +134,11 @@ func main() {
 			"workflow_file", "run_number", "execution_time_seconds", "timestamp",
 		}
 	}
-	if err := writer.Write(header); err != nil {
-		log.Fatalf("Failed to write CSV header: %v", err)
+	if err := writerArgus.Write(header); err != nil {
+		log.Fatalf("Failed to write Argus CSV header: %v", err)
+	}
+	if err := writerZizmor.Write(header); err != nil {
+		log.Fatalf("Failed to write zizmor CSV header: %v", err)
 	}
 
 	totalRuns := len(workflowFiles) * RUNS_PER_WORKFLOW
@@ -137,11 +149,11 @@ func main() {
 
 		for run := 1; run <= RUNS_PER_WORKFLOW; run++ {
 			currentRun++
-			log.Printf("  [%d/%d] Run %d/%d", currentRun, totalRuns, run, RUNS_PER_WORKFLOW)
+			log.Printf("  [%d/%d] Run %d/%d - Argus", currentRun, totalRuns*2, run, RUNS_PER_WORKFLOW)
 
-			result, err := runBenchmark(workflow, run, rawDstatDir)
+			result, err := runBenchmark(workflow, run, rawDstatDir, "argus")
 			if err != nil {
-				log.Printf("    ❌ Error: %v", err)
+				log.Printf("    ❌ Argus Error: %v", err)
 				continue
 			}
 
@@ -167,29 +179,73 @@ func main() {
 					result.Timestamp,
 				}
 			}
-			if err := writer.Write(record); err != nil {
-				log.Printf("    ⚠️  Failed to write result: %v", err)
-			}
-			writer.Flush()
 
-			log.Printf("    ✅ Completed in %.2fs", result.ExecutionTime)
+			if result.Tool == "argus" {
+				if err := writerArgus.Write(record); err != nil {
+					log.Printf("    ⚠️  Failed to write Argus result: %v", err)
+				}
+				writerArgus.Flush()
+			} else if result.Tool == "zizmor" {
+				if err := writerZizmor.Write(record); err != nil {
+					log.Printf("    ⚠️  Failed to write zizmor result: %v", err)
+				}
+				writerZizmor.Flush()
+			}
+
+			log.Printf("    ✅ Argus completed in %.2fs", result.ExecutionTime)
+
+			// Run zizmor on the same workflow
+			log.Printf("  [%d/%d] Run %d/%d - zizmor", currentRun+1, totalRuns*2, run, RUNS_PER_WORKFLOW)
+			resultZizmor, err := runBenchmark(workflow, run, rawDstatDir, "zizmor")
+			if err != nil {
+				log.Printf("    ❌ zizmor Error: %v", err)
+			} else {
+				var recordZizmor []string
+				if ENABLE_DSTAT {
+					recordZizmor = []string{
+						resultZizmor.WorkflowFile,
+						strconv.Itoa(resultZizmor.RunNumber),
+						fmt.Sprintf("%.3f", resultZizmor.ExecutionTime),
+						fmt.Sprintf("%.2f", resultZizmor.AvgCPU),
+						fmt.Sprintf("%.2f", resultZizmor.PeakMemory),
+						fmt.Sprintf("%.2f", resultZizmor.AvgDiskRead),
+						fmt.Sprintf("%.2f", resultZizmor.AvgDiskWrite),
+						fmt.Sprintf("%.2f", resultZizmor.AvgNetRecv),
+						fmt.Sprintf("%.2f", resultZizmor.AvgNetSend),
+						resultZizmor.Timestamp,
+					}
+				} else {
+					recordZizmor = []string{
+						resultZizmor.WorkflowFile,
+						strconv.Itoa(resultZizmor.RunNumber),
+						fmt.Sprintf("%.3f", resultZizmor.ExecutionTime),
+						resultZizmor.Timestamp,
+					}
+				}
+				if err := writerZizmor.Write(recordZizmor); err != nil {
+					log.Printf("    ⚠️  Failed to write zizmor result: %v", err)
+				}
+				writerZizmor.Flush()
+				log.Printf("    ✅ zizmor completed in %.2fs", resultZizmor.ExecutionTime)
+			}
 
 			time.Sleep(2 * time.Second)
 		}
 	}
 
-	log.Printf("\n✨ Benchmarking complete! Results saved to: %s\n", resultsFile)
+	log.Printf("\n✨ Benchmarking complete!")
+	log.Printf("   Argus results saved to: %s", resultsFileArgus)
+	log.Printf("   zizmor results saved to: %s\n", resultsFileZizmor)
 }
 
-func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string) (*BenchmarkResult, error) {
+func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string, tool string) (*BenchmarkResult, error) {
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	outputFile := filepath.Join("results", fmt.Sprintf("%s_run%d.sarif", workflow.Name, runNumber))
 
 	var dstatPID int
 	var dstatCmd *exec.Cmd
 
 	if ENABLE_DSTAT {
-		dstatFile := filepath.Join(rawDstatDir, fmt.Sprintf("%s_run%d_%s.csv", workflow.Name, runNumber, timestamp))
+		dstatFile := filepath.Join(rawDstatDir, fmt.Sprintf("%s_%s_run%d_%s.csv", workflow.Name, tool, runNumber, timestamp))
 
 		dstatCmd = exec.Command("dstat",
 			"--time", "--cpu", "--mem", "--net", "--disk", "--swap",
@@ -211,16 +267,37 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string) (*Be
 	}
 
 	startTime := time.Now()
-	argusCmd := exec.Command("poetry", "run", "python3", "argus.py",
-		"--mode", "file",
-		"--file", workflow.Path,
-		"--output", outputFile)
-	argusCmd.Dir = ".."
-	argusCmd.Stdout = nil
-	argusCmd.Stderr = nil
 
-	if err := argusCmd.Run(); err != nil {
-		return nil, fmt.Errorf("argus failed: %w", err)
+	var cmd *exec.Cmd
+	if tool == "argus" {
+		outputFile := filepath.Join("results", fmt.Sprintf("%s_run%d.sarif", workflow.Name, runNumber))
+		cmd = exec.Command("poetry", "run", "python3", "argus.py",
+			"--mode", "file",
+			"--file", workflow.Path,
+			"--output", outputFile)
+		cmd.Dir = ".."
+	} else if tool == "zizmor" {
+		// zizmor runs from current directory (benchmark), so we need to adjust the path
+		// The workflow.Path is relative to Argus root (../Argus_artifacts/...)
+		// From benchmark dir, we need ../../Argus_artifacts/...
+		zizmorPath := filepath.Join("..", workflow.Path)
+		cmd = exec.Command("zizmor",
+			"--format", "sarif",
+			zizmorPath)
+	} else {
+		return nil, fmt.Errorf("unknown tool: %s", tool)
+	}
+	// Capture stderr for debugging
+	var stderrBuf strings.Builder
+	cmd.Stdout = nil
+	cmd.Stderr = &stderrBuf
+
+	if err := cmd.Run(); err != nil {
+		stderrOutput := stderrBuf.String()
+		if stderrOutput != "" {
+			return nil, fmt.Errorf("%s failed: %w (stderr: %s)", tool, err, stderrOutput[:min(len(stderrOutput), 200)])
+		}
+		return nil, fmt.Errorf("%s failed: %w", tool, err)
 	}
 	executionTime := time.Since(startTime).Seconds()
 
@@ -229,6 +306,7 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string) (*Be
 		RunNumber:     runNumber,
 		ExecutionTime: executionTime,
 		Timestamp:     timestamp,
+		Tool:          tool,
 	}
 
 	if ENABLE_DSTAT {
@@ -241,7 +319,7 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string) (*Be
 
 		time.Sleep(500 * time.Millisecond)
 
-		dstatFile := filepath.Join(rawDstatDir, fmt.Sprintf("%s_run%d_%s.csv", workflow.Name, runNumber, timestamp))
+		dstatFile := filepath.Join(rawDstatDir, fmt.Sprintf("%s_%s_run%d_%s.csv", workflow.Name, tool, runNumber, timestamp))
 		metrics, err := parseDstatOutput(dstatFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse dstat: %w", err)
