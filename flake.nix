@@ -17,9 +17,12 @@
             go
             poetry
             zizmor
+            stdenv.cc.cc.lib
           ];
 
           shellHook = ''
+            export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib ]}:$LD_LIBRARY_PATH"
+
             echo "Argus dev shell"
             echo "Go $(go version | awk '{print substr($3, 3)}')"
             echo "Poetry $(poetry --version | awk -F '[ ()]' '{print $4}')"
