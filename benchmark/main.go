@@ -89,6 +89,14 @@ func main() {
 	rawDstatDir := filepath.Join(resultsDir, "raw_dstat")
 	os.MkdirAll(rawDstatDir, 0755)
 
+	// Create output directory for SARIF results with subdirectories for each workflow
+	sarifOutputDir := filepath.Join(resultsDir, "sarif_outputs")
+	os.MkdirAll(sarifOutputDir, 0755)
+	for _, workflow := range workflowFiles {
+		workflowOutputDir := filepath.Join(sarifOutputDir, workflow.Name)
+		os.MkdirAll(workflowOutputDir, 0755)
+	}
+
 	if ENABLE_DSTAT {
 		log.Printf("\n📊 Collecting baseline statistics (%v idle)...", BASELINE_DURATION)
 		baseline, err := collectBaseline(rawDstatDir)
@@ -147,11 +155,14 @@ func main() {
 	for _, workflow := range workflowFiles {
 		log.Printf("\n📁 Testing workflow: %s", workflow.Name)
 
+		// Get output directory for this workflow
+		workflowOutputDir := filepath.Join(sarifOutputDir, workflow.Name)
+
 		for run := 1; run <= RUNS_PER_WORKFLOW; run++ {
 			currentRun++
 			log.Printf("  [%d/%d] Run %d/%d - Argus", currentRun, totalRuns*2, run, RUNS_PER_WORKFLOW)
 
-			result, err := runBenchmark(workflow, run, rawDstatDir, "argus")
+			result, err := runBenchmark(workflow, run, rawDstatDir, "argus", workflowOutputDir)
 			if err != nil {
 				log.Printf("    ❌ Argus Error: %v", err)
 				continue
@@ -196,7 +207,7 @@ func main() {
 
 			// Run zizmor on the same workflow
 			log.Printf("  [%d/%d] Run %d/%d - zizmor", currentRun+1, totalRuns*2, run, RUNS_PER_WORKFLOW)
-			resultZizmor, err := runBenchmark(workflow, run, rawDstatDir, "zizmor")
+			resultZizmor, err := runBenchmark(workflow, run, rawDstatDir, "zizmor", workflowOutputDir)
 			if err != nil {
 				log.Printf("    ❌ zizmor Error: %v", err)
 			} else {
@@ -236,9 +247,10 @@ func main() {
 	log.Printf("\n✨ Benchmarking complete!")
 	log.Printf("   Argus results saved to: %s", resultsFileArgus)
 	log.Printf("   zizmor results saved to: %s\n", resultsFileZizmor)
+	log.Printf("   SARIF outputs saved to: %s\n", sarifOutputDir)
 }
 
-func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string, tool string) (*BenchmarkResult, error) {
+func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string, tool string, outputDir string) (*BenchmarkResult, error) {
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
 
 	var dstatPID int
@@ -270,7 +282,10 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string, tool
 
 	var cmd *exec.Cmd
 	if tool == "argus" {
-		outputFile := filepath.Join("results", fmt.Sprintf("%s_run%d.sarif", workflow.Name, runNumber))
+		outputFile, err := filepath.Abs(filepath.Join(outputDir, "argus.sarif"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get absolute path for output file: %w", err)
+		}
 		cmd = exec.Command("poetry", "run", "python3", "argus.py",
 			"--mode", "file",
 			"--file", workflow.Path,
@@ -281,15 +296,25 @@ func runBenchmark(workflow WorkflowFile, runNumber int, rawDstatDir string, tool
 		// The workflow.Path is relative to Argus root (../Argus_artifacts/...)
 		// From benchmark dir, we need ../../Argus_artifacts/...
 		zizmorPath := filepath.Join("..", workflow.Path)
+		outputFile := filepath.Join(outputDir, "zizmor.sarif")
 		cmd = exec.Command("zizmor",
 			"--format", "sarif",
 			zizmorPath)
+		// Redirect stdout to the output file
+		stdoutFile, err := os.Create(outputFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create output file: %w", err)
+		}
+		defer stdoutFile.Close()
+		cmd.Stdout = stdoutFile
 	} else {
 		return nil, fmt.Errorf("unknown tool: %s", tool)
 	}
 	// Capture stderr for debugging
 	var stderrBuf strings.Builder
-	cmd.Stdout = nil
+	if tool != "zizmor" {
+		cmd.Stdout = nil
+	}
 	cmd.Stderr = &stderrBuf
 
 	if err := cmd.Run(); err != nil {
@@ -499,4 +524,11 @@ func max(values []float64) float64 {
 		}
 	}
 	return maxVal
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
