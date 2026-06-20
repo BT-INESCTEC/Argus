@@ -20,6 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import pathlib
+import re
 import yaml
 
 from .ghaction import GHAction
@@ -46,7 +47,7 @@ class GHJSAction(GHAction):
     @staticmethod
     def detect_type(action_type):
         # call get_yaml_type from the superclass
-        if action_type == "node16" or action_type == "node14" or action_type == "node12" or action_type == "node20":
+        if isinstance(action_type, str) and re.fullmatch(r"node\d+", action_type):
             return True
         return False
 
