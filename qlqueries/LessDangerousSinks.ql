@@ -1,14 +1,12 @@
 /**
  * @name LessDangerousSinks
  * @description Finding Less sinks
- * @kind path-problem
  * @tags security
  * @id javascipt/dangerous
  * @precision medium
  */
 
 import javascript
-import DataFlow::PathGraph
 
 DataFlow::Node ioActionCalls() {
     result = DataFlow::moduleImport("@actions/io").getAMemberCall("rmRF").getArgument(0) 

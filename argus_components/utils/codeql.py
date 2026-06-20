@@ -46,7 +46,27 @@ ALL_FILES = [DANGEROUS_SINKS_FILE, LESS_DANGEROUS_SINKS_FILE, ENV_SINKS_FILE,
              LESS_ENV_SINKS_FILE, ENV_OUTPUT_TAINTING_FILE, OUTPUT_TAINTING_FILE, 
              CONTEXT_SINKS_FILE, LESS_CONTEXT_SINKS_FILE, CONTEXT_OUTPUT_FILE]
 
+def _get_env_with_node():
+    """Return an env dict that inherits the current environment and ensures
+    node/npm are on PATH by scanning common nvm installation paths."""
+    env = os.environ.copy()
+    if not any(
+        os.path.isfile(os.path.join(p, "node"))
+        for p in env.get("PATH", "").split(os.pathsep)
+    ):
+        nvm_root = os.path.expanduser("~/.nvm/versions/node")
+        if os.path.isdir(nvm_root):
+            versions = sorted(os.listdir(nvm_root), reverse=True)
+            if versions:
+                node_bin = os.path.join(nvm_root, versions[0], "bin")
+                env["PATH"] = node_bin + os.pathsep + env.get("PATH", "")
+                logger.debug(f"Augmented PATH with nvm node bin: {node_bin}")
+    return env
+
+
 def run_cmd(command, env=None, cwd=None, verbose=False, timeout=25 * 60, error_msg = "", raise_timeout=False):
+    if env is None:
+        env = _get_env_with_node()
     try:
         logger.debug(f"Running command : {command}\n with {cwd} and {env}")
         out = subprocess.run(

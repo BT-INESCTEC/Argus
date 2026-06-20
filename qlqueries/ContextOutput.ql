@@ -1,14 +1,12 @@
 /**
  * @name Output Tainting Context
  * @description Finding Outputs Context
- * @kind path-problem
  * @tags security
  * @id javascipt/dangerous
  * @precision medium 
  */
 
 import javascript
-import DataFlow::PathGraph
 
 DataFlow::Node outputSinks() {
     result = DataFlow::moduleImport("@actions/core").getAMemberCall("setOutput").getArgument(1) or

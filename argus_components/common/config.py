@@ -27,7 +27,9 @@ LOCAL_FOLDER : pathlib.Path = pathlib.Path('/tmp')
 CODEQL_BIN : pathlib.Path = pathlib.Path('~/codeql_home/codeql/codeql')
 QUERY_PATH : pathlib.Path = pathlib.Path(os.path.dirname(__file__)) / "../../qlqueries"
 ENABLE_LOW_PRIORITY_REPORTS : bool = True
-RESULTS_FOLDER : pathlib.Path = pathlib.Path("/results")
+
+# ./results for local, /results for Docker
+RESULTS_FOLDER : pathlib.Path = pathlib.Path("./results") if not os.access("/results", os.W_OK) else pathlib.Path("/results")
 
 def parse_config(config_file : str):
     # open and read the config json file

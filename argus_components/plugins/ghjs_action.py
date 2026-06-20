@@ -79,11 +79,11 @@ class GHJSAction(GHAction):
         # Run CodeQL
         codeql_folder = LOCAL_FOLDER / f"{self.action_name.replace('/', '#')}_codeql"
 
-        if not codeql_folder.exists():
-            logger.debug(f"Creating folder {codeql_folder}")
+        if not CodeQL.is_valid_codeql_db(codeql_folder):
+            logger.debug(f"Creating CodeQL database in {codeql_folder}")
             CodeQL.compile_codeql_db(self.action_folder, codeql_folder)
         else:
-            logger.debug(f"CodeQL folder {codeql_folder} already exists")
+            logger.debug(f"CodeQL folder {codeql_folder} already exists and is valid")
 
         # Run CodeQL query
         if CodeQL.query_results_present(codeql_folder):

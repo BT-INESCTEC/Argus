@@ -1,14 +1,12 @@
 /**
  * @name Output Tainting 
  * @description Finding Outputs
- * @kind path-problem
  * @tags security
  * @id javascipt/dangerous
  * @precision medium 
  */
 
 import javascript
-import DataFlow::PathGraph
 
 DataFlow::Node coreSources() { 
     result = DataFlow::moduleImport("@actions/core").getAMemberCall("getInput") or
