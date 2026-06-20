@@ -1,10 +1,10 @@
 #    _____ __________  ________ ____ ___  _________
 #   /  _  \\______   \/  _____/|    |   \/   _____/
-#  /  /_\  \|       _/   \  ___|    |   /\_____  \ 
+#  /  /_\  \|       _/   \  ___|    |   /\_____  \
 # /    |    \    |   \    \_\  \    |  / /        \
 # \____|__  /____|_  /\______  /______/ /_______  /
-#         \/       \/        \/                 \/ 
-# 
+#         \/       \/        \/                 \/
+#
 # Copyright (C) 2023 Siddharth Muralee
 
 # This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@ import yaml
 
 class GHAction:
     target_classes = []
-    
+
     def __init__(self, action_url, options_dict):
         self.action_url = action_url
         self.options_dict = options_dict
@@ -33,8 +33,8 @@ class GHAction:
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.target_classes.append(cls)
-    
-    @staticmethod    
+
+    @staticmethod
     def identify_action(action_name, action_path, action_folder, action):
         action_yml_path = GHAction.find_action_yml(action_folder, action_name, action_path)
         if action_name == None:
@@ -47,20 +47,23 @@ class GHAction:
     @staticmethod
     def find_action_yml(action_folder, action_name, action_path):
         if action_path == None:
-            action_yml_path = action_folder / "action.yml"
+            candidates = [action_folder / "action.yml", action_folder / "action.yaml"]
         else:
-            action_yml_path = action_folder / action_path / "action.yml"
-        if not action_yml_path.exists():
-            if action_path != None:
-                action_yml_path = action_folder / action_path / "action.yaml"
-            else:
-                action_yml_path = action_folder / "action.yaml"
-            if not action_yml_path.exists():
-                if action_path == None:
-                    raise Exception("Invalid action! action.yml not found at " + str(action_folder))
-                else:
-                    raise Exception("Invalid action! action.yml not found at " + str(action_folder / action_path))
-        return action_yml_path
+            candidates = [
+                action_folder / action_path / "action.yml",
+                action_folder / action_path / "action.yaml",
+            ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        if action_path != None:
+            for fallback in (action_folder / "action.yml", action_folder / "action.yaml"):
+                if fallback.exists():
+                    return fallback
+        if action_path == None:
+            raise Exception("Invalid action! action.yml not found at " + str(action_folder))
+        else:
+            raise Exception("Invalid action! action.yml not found at " + str(action_folder / action_path))
 
     @staticmethod
     def get_yaml_type(action_yml_path):
@@ -75,5 +78,3 @@ class GHAction:
         except KeyError:
             # This should be plugin, but I am lazy to add it anyways
             return "docker"
-
-
